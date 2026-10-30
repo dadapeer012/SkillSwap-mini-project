@@ -1,0 +1,418 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-bg-light: #F7F6F2;
+  --color-surface-light: #FFFFFF;
+  --color-border-light: #E6E3DA;
+  --color-ink-light: #16160F;
+  --color-ink-muted-light: #6B6858;
+  --color-accent-pine: #1B4332;
+  --color-accent-pine-hover: #143326;
+  --color-accent-soft-light: #E4EEE8;
+  --color-gold: #B8860B;
+
+  --color-bg-dark: #0F1210;
+  --color-surface-dark: #181B18;
+  --color-border-dark: #2A2E29;
+  --color-ink-dark: #F2F1EC;
+  --color-ink-muted-dark: #9C9A8C;
+  --color-accent-dark: #3FA873;
+  --color-accent-dark-hover: #338d60;
+  --color-accent-soft-dark: #1C2E24;
+  --color-gold-dark: #D4A017;
+
+  --font-serif-brand: Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+:root {
+  --bg: #F7F6F2;
+  --surface: #FFFFFF;
+  --border: #E6E3DA;
+  --ink: #16160F;
+  --ink-muted: #6B6858;
+  --accent: #1B4332;
+  --accent-hover: #143326;
+  --accent-soft: #E4EEE8;
+  --gold: #B8860B;
+  color-scheme: light;
+}
+
+.dark {
+  --bg: #0F1210;
+  --surface: #181B18;
+  --border: #2A2E29;
+  --ink: #F2F1EC;
+  --ink-muted: #9C9A8C;
+  --accent: #3FA873;
+  --accent-hover: #338d60;
+  --accent-soft: #1C2E24;
+  --gold: #D4A017;
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Georgia font class for wordmark */
+.font-brand-serif {
+  font-family: Georgia, Cambria, "Times New Roman", Times, serif;
+}
+
+/* Phase 13.2 — SkillSwap Motion Foundation & Keyframes */
+@keyframes pageEnter {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes sectionEnter {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dropdownEnter {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(-6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes tabFade {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes subtlePulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.65;
+  }
+}
+
+.animate-page-enter {
+  animation: pageEnter 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-section-enter {
+  animation: sectionEnter 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-dropdown-enter {
+  animation: dropdownEnter 190ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top right;
+}
+
+.animate-tab-fade {
+  animation: tabFade 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-subtle-pulse {
+  animation: subtlePulse 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Phase 13.3 — SkillSwap Animated Hero Tokens */
+@keyframes heroFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes heroSlideLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes heroSlideRight {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes heroExchangeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes heroExchangePulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 0.88;
+  }
+}
+
+.animate-hero-fade-up {
+  animation: heroFadeUp 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-hero-slide-left {
+  animation: heroSlideLeft 440ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-hero-slide-right {
+  animation: heroSlideRight 440ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-hero-exchange-in {
+  animation: heroExchangeIn 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.animate-hero-pulse {
+  animation: heroExchangePulse 4s ease-in-out infinite;
+}
+
+.hero-delay-0 {
+  animation-delay: 0ms;
+  animation-fill-mode: both;
+}
+
+.hero-delay-1 {
+  animation-delay: 60ms;
+  animation-fill-mode: both;
+}
+
+.hero-delay-2 {
+  animation-delay: 120ms;
+  animation-fill-mode: both;
+}
+
+.hero-delay-3 {
+  animation-delay: 180ms;
+  animation-fill-mode: both;
+}
+
+.hero-delay-4 {
+  animation-delay: 240ms;
+  animation-fill-mode: both;
+}
+
+.hero-delay-5 {
+  animation-delay: 300ms;
+  animation-fill-mode: both;
+}
+
+/* Progressive Stagger Utilities */
+.stagger-1 {
+  animation-delay: 60ms;
+  animation-fill-mode: both;
+}
+
+.stagger-2 {
+  animation-delay: 120ms;
+  animation-fill-mode: both;
+}
+
+.stagger-3 {
+  animation-delay: 180ms;
+  animation-fill-mode: both;
+}
+
+.stagger-4 {
+  animation-delay: 240ms;
+  animation-fill-mode: both;
+}
+
+/* Micro-Interaction Tokens */
+.motion-card-interactive {
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.motion-card-interactive:hover {
+  transform: translateY(-2px);
+}
+
+.motion-card-interactive:active {
+  transform: scale(0.99);
+}
+
+.motion-btn-interactive {
+  transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.motion-btn-interactive:active {
+  transform: scale(0.98);
+}
+
+/* Custom Micro-Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(27, 67, 50, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(27, 67, 50, 0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    #E6E3DA 25%,
+    #F0EDE6 50%,
+    #E6E3DA 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s infinite linear;
+}
+
+.dark .animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    #181B18 25%,
+    #252A25 50%,
+    #181B18 75%
+  );
+  background-size: 200% 100%;
+}
+
+.animate-pulseGlow {
+  animation: pulseGlow 2s infinite cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* Accessible focus outlines */
+*:focus-visible {
+  outline: 2px solid #1B4332;
+  outline-offset: 2px;
+}
+
+.dark *:focus-visible {
+  outline: 2px solid #3FA873;
+}
+
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible {
+  outline: none !important;
+}
+
+/* Subtle transitions */
+.transition-linear {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Reaction Burst & Pop Keyframes */
+@keyframes reactionPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.35) rotate(-6deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+
+@keyframes toastCountdown {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-reactionPop {
+  animation: reactionPop 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-delay: 0s !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

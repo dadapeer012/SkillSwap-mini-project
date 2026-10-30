@@ -1,0 +1,438 @@
+import { useState, useEffect } from "react";
+import SkillCard from "./SkillCard";
+import SkillModal from "./SkillModal";
+import DeleteSkillDialog from "./DeleteSkillDialog";
+import EmptyState from "../EmptyState";
+import { ChevronDown, ChevronUp } from "lucide-react";
+import { OfferedSkillIcon, WantedSkillIcon } from "../icons";
+import {
+  getOwnSkills,
+  getUserActiveSkills,
+  createSkill,
+  updateSkill,
+  deleteSkill,
+} from "../../services/skillService";
+
+export default function SkillsSection({
+  userId,
+  isOwner = false,
+  showToast,
+  onSkillsCountChanged,
+  onSkillsLoaded,
+}) {
+  const [skills, setSkills] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Modal states
+  const [showModal, setShowModal] = useState(false);
+  const [selectedSkill, setSelectedSkill] = useState(null);
+  const [modalType, setModalType] = useState("Offer");
+  const [apiError, setApiError] = useState("");
+
+  // Delete dialog state
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [skillToDelete, setSkillToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    fetchSkills();
+  }, [userId, isOwner]);
+
+  const fetchSkills = async () => {
+    setLoading(true);
+    try {
+      let res;
+      if (isOwner) {
+        res = await getOwnSkills();
+      } else if (userId) {
+        res = await getUserActiveSkills(userId);
+      }
+
+      if (res && res.success && Array.isArray(res.data)) {
+        setSkills(res.data);
+        notifySkillsCount(res.data);
+        if (onSkillsLoaded) onSkillsLoaded(res.data);
+      }
+    } catch (err) {
+      console.error("Failed to load skills:", err);
+      if (showToast) showToast("Failed to load skills", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const notifySkillsCount = (skillsList) => {
+    if (onSkillsCountChanged) {
+      const offered = skillsList.filter((s) => s.type === "Offer").length;
+      const wanted = skillsList.filter((s) => s.type === "Learn").length;
+      onSkillsCountChanged({ total: skillsList.length, offered, wanted });
+    }
+  };
+
+  const handleOpenAddModal = (type = "Offer") => {
+    setSelectedSkill(null);
+    setModalType(type);
+    setApiError("");
+    setShowModal(true);
+  };
+
+  const handleOpenEditModal = (skill) => {
+    setSelectedSkill(skill);
+    setModalType(skill.type);
+    setApiError("");
+    setShowModal(true);
+  };
+
+  const handleOpenDeleteDialog = (skill) => {
+    setSkillToDelete(skill);
+    setShowDeleteDialog(true);
+  };
+
+  const handleModalSubmit = async (payload) => {
+    setSubmitting(true);
+    setApiError("");
+
+    try {
+      if (selectedSkill && selectedSkill._id) {
+        // Update Skill
+        const res = await updateSkill(selectedSkill._id, payload);
+        if (res.success && res.data) {
+          const updatedSkills = skills.map((s) => (s._id === res.data._id ? res.data : s));
+          setSkills(updatedSkills);
+          notifySkillsCount(updatedSkills);
+          if (onSkillsLoaded) onSkillsLoaded(updatedSkills);
+          if (showToast) showToast("Skill updated successfully", "success");
+          setShowModal(false);
+          setSelectedSkill(null);
+        }
+      } else {
+        // Create Skill
+        const res = await createSkill(payload);
+        if (res.success && res.data) {
+          const updatedSkills = [res.data, ...skills];
+          setSkills(updatedSkills);
+          notifySkillsCount(updatedSkills);
+          if (onSkillsLoaded) onSkillsLoaded(updatedSkills);
+          if (showToast) showToast("Skill added successfully", "success");
+          setShowModal(false);
+          setSelectedSkill(null);
+        }
+      }
+    } catch (err) {
+      console.error("Error saving skill:", err);
+      const errMsg = err.response?.data?.message || err.message || "Failed to save skill";
+      
+      // 1. Display Toast Notification
+      if (showToast) showToast(errMsg, "error");
+      
+      // 2. Set API error state to highlight input & keep modal open with preserved form data
+      setApiError(errMsg);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!skillToDelete || !skillToDelete._id) return;
+    setDeleting(true);
+    try {
+      const res = await deleteSkill(skillToDelete._id);
+      if (res.success) {
+        const updatedSkills = skills.filter((s) => s._id !== skillToDelete._id);
+        setSkills(updatedSkills);
+        notifySkillsCount(updatedSkills);
+        if (onSkillsLoaded) onSkillsLoaded(updatedSkills);
+        if (showToast) showToast("Skill deleted successfully", "info");
+      }
+    } catch (err) {
+      console.error("Error deleting skill:", err);
+      if (showToast) showToast("Failed to delete skill", "error");
+    } finally {
+      setDeleting(false);
+      setShowDeleteDialog(false);
+      setSkillToDelete(null);
+    }
+  };
+
+  // Independent expand/collapse state
+  const [offeredExpanded, setOfferedExpanded] = useState(false);
+  const [wantedExpanded, setWantedExpanded] = useState(false);
+
+  const offeredSkills = skills.filter((s) => s.type === "Offer");
+  const wantedSkills = skills.filter((s) => s.type === "Learn");
+
+  const visibleOfferedSkills = offeredExpanded || offeredSkills.length <= 2
+    ? offeredSkills
+    : offeredSkills.slice(0, 2);
+  const hiddenOfferedCount = offeredSkills.length - 2;
+
+  const visibleWantedSkills = wantedExpanded || wantedSkills.length <= 2
+    ? wantedSkills
+    : wantedSkills.slice(0, 2);
+  const hiddenWantedCount = wantedSkills.length - 2;
+
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {[1, 2].map((i) => (
+          <div key={i} className="bg-white dark:bg-[#181B18] rounded-2xl border border-[#E6E3DA] dark:border-[#2A2E29] p-6 shadow-sm space-y-4">
+            <div className="h-5 bg-[#E6E3DA] dark:bg-[#2A2E29] rounded-md w-32 animate-shimmer"></div>
+            <div className="h-3 bg-[#E6E3DA] dark:bg-[#2A2E29] rounded-md w-48 animate-shimmer"></div>
+            <div className="grid grid-cols-1 gap-3 pt-2">
+              <div className="h-24 bg-[#E6E3DA]/60 dark:bg-[#2A2E29]/60 rounded-2xl animate-shimmer"></div>
+              <div className="h-24 bg-[#E6E3DA]/60 dark:bg-[#2A2E29]/60 rounded-2xl animate-shimmer"></div>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Skill Modal for Create & Edit */}
+      <SkillModal
+        isOpen={showModal}
+        initialData={selectedSkill}
+        type={modalType}
+        submitting={submitting}
+        apiError={apiError}
+        onSubmit={handleModalSubmit}
+        onCancel={() => {
+          setShowModal(false);
+          setSelectedSkill(null);
+          setApiError("");
+        }}
+      />
+
+      {/* Delete Skill Confirmation Dialog */}
+      <DeleteSkillDialog
+        isOpen={showDeleteDialog}
+        skill={skillToDelete}
+        isDeleting={deleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => {
+          setShowDeleteDialog(false);
+          setSkillToDelete(null);
+        }}
+      />
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        {/* SKILLS OFFERED SECTION */}
+        <div className="bg-white dark:bg-[#181B18] rounded-2xl border border-[#E6E3DA] dark:border-[#2A2E29] p-5 sm:p-6 flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <OfferedSkillIcon className="w-4 h-4 text-[#1B4332] dark:text-[#3FA873]" />
+                <h2 className="text-sm font-extrabold text-[#16160F] dark:text-[#F2F1EC]">Skills Offered</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                    offeredSkills.length >= 5
+                      ? "text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/40 font-bold"
+                      : "text-[#1B4332] dark:text-[#3FA873] bg-[#E4EEE8] dark:bg-[#1C2E24] border-[#1B4332]/20 dark:border-[#3FA873]/30"
+                  }`}
+                  title="Maximum 5 offering skills (Active + Inactive)"
+                >
+                  {offeredSkills.length}/5
+                </span>
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenAddModal("Offer")}
+                    disabled={offeredSkills.length >= 5}
+                    className="h-7 px-2.5 text-[11px] font-bold text-white dark:text-[#0F1210] bg-[#1B4332] dark:bg-[#3FA873] hover:bg-[#143326] dark:hover:bg-[#339162] disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-all active:scale-[0.98] inline-flex items-center gap-1 shadow-2xs cursor-pointer"
+                    title={
+                      offeredSkills.length >= 5
+                        ? "Maximum of 5 offering skills reached. Delete an existing skill to add another."
+                        : "Add Offered Skill"
+                    }
+                  >
+                    <span>+ Add</span>
+                  </button>
+                )}
+                {offeredSkills.length >= 3 && (
+                  <button
+                    type="button"
+                    onClick={() => setOfferedExpanded((prev) => !prev)}
+                    className="h-7 w-7 rounded-lg text-[#6B6858] dark:text-[#9C9A8C] hover:text-[#16160F] dark:hover:text-[#F2F1EC] hover:bg-[#F7F6F2] dark:hover:bg-[#202520] border border-transparent hover:border-[#E6E3DA] dark:hover:border-[#2A2E29] transition-all flex items-center justify-center cursor-pointer"
+                    title={offeredExpanded ? "Show fewer skills" : "Show all skills"}
+                    aria-label={offeredExpanded ? "Collapse skills offered" : "Expand skills offered"}
+                  >
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${
+                        offeredExpanded ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                )}
+              </div>
+            </div>
+            <p className="text-[11px] text-[#6B6858] dark:text-[#9C9A8C] mb-2">Skills available to teach and mentor other members</p>
+            {isOwner && offeredSkills.length >= 5 && (
+              <p className="text-[11px] font-medium text-amber-800 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 rounded-lg p-2 mb-3">
+                Maximum of 5 offering skills reached. Delete an existing skill to add another.
+              </p>
+            )}
+
+            {offeredSkills.length > 0 ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-3 transition-all duration-300">
+                  {visibleOfferedSkills.map((skill) => (
+                    <SkillCard
+                      key={skill._id}
+                      skill={skill}
+                      isOwner={isOwner}
+                      onEdit={handleOpenEditModal}
+                      onDelete={handleOpenDeleteDialog}
+                    />
+                  ))}
+                </div>
+
+                {offeredSkills.length >= 3 && (
+                  <div className="pt-1 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setOfferedExpanded((prev) => !prev)}
+                      className="text-xs font-semibold text-[#1B4332] dark:text-[#3FA873] hover:text-[#143326] dark:hover:text-[#52B788] hover:underline transition-all cursor-pointer py-1 inline-flex items-center gap-1"
+                    >
+                      {offeredExpanded ? (
+                        <>
+                          <span>Show less</span>
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </>
+                      ) : (
+                        <>
+                          <span>+{hiddenOfferedCount} more {hiddenOfferedCount === 1 ? "skill" : "skills"}</span>
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <EmptyState
+                icon="📚"
+                title="No Skills Offered Yet"
+                description="Share what you know and help others learn."
+                actionText={isOwner && offeredSkills.length < 5 ? "Add Your First Skill" : ""}
+                onAction={isOwner && offeredSkills.length < 5 ? () => handleOpenAddModal("Offer") : undefined}
+              />
+            )}
+          </div>
+        </div>
+
+        {/* SKILLS WANTED SECTION */}
+        <div className="bg-white dark:bg-[#181B18] rounded-2xl border border-[#E6E3DA] dark:border-[#2A2E29] p-5 sm:p-6 flex flex-col justify-between shadow-xs hover:shadow-md transition-all duration-300">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-2">
+                <WantedSkillIcon className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+                <h2 className="text-sm font-extrabold text-[#16160F] dark:text-[#F2F1EC]">Skills Wanted</h2>
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${
+                    wantedSkills.length >= 5
+                      ? "text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/40 font-bold"
+                      : "text-[#16160F] dark:text-[#F2F1EC] bg-[#F7F6F2] dark:bg-[#202520] border-[#E6E3DA] dark:border-[#2A2E29]"
+                  }`}
+                  title="Maximum 5 learning skills (Active + Inactive)"
+                >
+                  {wantedSkills.length}/5
+                </span>
+                {isOwner && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenAddModal("Learn")}
+                    disabled={wantedSkills.length >= 5}
+                    className="h-7 px-2.5 text-[11px] font-bold text-white dark:text-[#0F1210] bg-[#1B4332] dark:bg-[#3FA873] hover:bg-[#143326] dark:hover:bg-[#339162] disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition-all active:scale-[0.98] inline-flex items-center gap-1 shadow-2xs cursor-pointer"
+                    title={
+                      wantedSkills.length >= 5
+                        ? "Maximum of 5 learning skills reached. Delete an existing skill to add another."
+                        : "Add Learning Skill"
+                    }
+                  >
+                    <span>+ Add</span>
+                  </button>
+                )}
+                {wantedSkills.length >= 3 && (
+                  <button
+                    type="button"
+                    onClick={() => setWantedExpanded((prev) => !prev)}
+                    className="h-7 w-7 rounded-lg text-[#6B6858] dark:text-[#9C9A8C] hover:text-[#16160F] dark:hover:text-[#F2F1EC] hover:bg-[#F7F6F2] dark:hover:bg-[#202520] border border-transparent hover:border-[#E6E3DA] dark:border-[#2A2E29] transition-all flex items-center justify-center cursor-pointer"
+                    title={wantedExpanded ? "Show fewer skills" : "Show all skills"}
+                    aria-label={wantedExpanded ? "Collapse skills wanted" : "Expand skills wanted"}
+                  >
+                    <ChevronDown
+                      className={`w-4 h-4 transition-transform duration-200 ${
+                        wantedExpanded ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+                )}
+              </div>
+            </div>
+            <p className="text-[11px] text-[#6B6858] dark:text-[#9C9A8C] mb-2">Skills looking to learn from community mentors</p>
+            {isOwner && wantedSkills.length >= 5 && (
+              <p className="text-[11px] font-medium text-amber-800 dark:text-amber-300 bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-800/40 rounded-lg p-2 mb-3">
+                Maximum of 5 learning skills reached. Delete an existing skill to add another.
+              </p>
+            )}
+
+            {wantedSkills.length > 0 ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-1 gap-3 transition-all duration-300">
+                  {visibleWantedSkills.map((skill) => (
+                    <SkillCard
+                      key={skill._id}
+                      skill={skill}
+                      isOwner={isOwner}
+                      onEdit={handleOpenEditModal}
+                      onDelete={handleOpenDeleteDialog}
+                    />
+                  ))}
+                </div>
+
+                {wantedSkills.length >= 3 && (
+                  <div className="pt-1 text-center">
+                    <button
+                      type="button"
+                      onClick={() => setWantedExpanded((prev) => !prev)}
+                      className="text-xs font-semibold text-[#1B4332] dark:text-[#3FA873] hover:text-[#143326] dark:hover:text-[#52B788] hover:underline transition-all cursor-pointer py-1 inline-flex items-center gap-1"
+                    >
+                      {wantedExpanded ? (
+                        <>
+                          <span>Show less</span>
+                          <ChevronUp className="w-3.5 h-3.5" />
+                        </>
+                      ) : (
+                        <>
+                          <span>+{hiddenWantedCount} more {hiddenWantedCount === 1 ? "skill" : "skills"}</span>
+                          <ChevronDown className="w-3.5 h-3.5" />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <EmptyState
+                icon="🎯"
+                title="No Skills Wanted Yet"
+                description="Tell the community what you want to learn."
+                actionText={isOwner && wantedSkills.length < 5 ? "Add Your First Skill" : ""}
+                onAction={isOwner && wantedSkills.length < 5 ? () => handleOpenAddModal("Learn") : undefined}
+              />
+            )}
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}
